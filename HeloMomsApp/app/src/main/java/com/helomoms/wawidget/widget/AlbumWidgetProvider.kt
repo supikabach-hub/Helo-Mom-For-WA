@@ -47,12 +47,6 @@ class AlbumWidgetProvider : AppWidgetProvider() {
                 repository.prevPage()
                 refreshAllWidgets(context)
             }
-            ACTION_CALL_WHATSAPP -> {
-                val currentContact = repository.getCurrentContact()
-                if (currentContact != null) {
-                    WhatsAppHelper.executeAction(context, currentContact)
-                }
-            }
         }
     }
 
@@ -76,13 +70,13 @@ class AlbumWidgetProvider : AppWidgetProvider() {
         if (allContacts.isEmpty()) {
             views.setTextViewText(R.id.tv_contact_name, "Belum Ada Kontak")
             views.setTextViewText(R.id.tv_page_indicator, "0 dari 0")
-            views.setTextViewText(R.id.tv_action_label, "Buka Aplikasi Pengaturan")
             // Launch MainActivity when clicking empty widget
             val launchIntent = Intent(context, com.helomoms.wawidget.ui.MainActivity::class.java)
             val pendingLaunch = PendingIntent.getActivity(
                 context, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.btn_call_wa, pendingLaunch)
+            views.setOnClickPendingIntent(R.id.btn_video_call, pendingLaunch)
+            views.setOnClickPendingIntent(R.id.btn_chat_wa, pendingLaunch)
             appWidgetManager.updateAppWidget(appWidgetId, views)
             return
         }
@@ -97,13 +91,8 @@ class AlbumWidgetProvider : AppWidgetProvider() {
             "Foto ${currentIndex + 1} dari ${allContacts.size}"
         )
 
-        // Set button label based on Action Type
-        val actionText = when (contact.actionType) {
-            ActionType.VIDEO_CALL -> "VIDEO CALL WA SEKARANG"
-            ActionType.VOICE_CALL -> "TELEPON WA SEKARANG"
-            ActionType.CHAT -> "CHAT WA SEKARANG"
-        }
-        views.setTextViewText(R.id.tv_action_label, actionText)
+        // Both Video Call and Chat WA buttons will launch the WA intent
+        // (Due to Android limitations, direct video call starting is restricted, so both open the chat)
 
         // Try loading photo if uri exists
         var photoSet = false
@@ -112,8 +101,19 @@ class AlbumWidgetProvider : AppWidgetProvider() {
                 val uri = Uri.parse(contact.photoUriString)
                 val inputStream = context.contentResolver.openInputStream(uri)
                 if (inputStream != null) {
-                    val bitmap = BitmapFactory.decodeStream(inputStream)
-                    views.setImageViewBitmap(R.id.img_contact_photo, bitmap)
+                    val originalBitmap = BitmapFactory.decodeStream(inputStream)
+                    
+                    // Scale down bitmap to prevent TransactionTooLargeException
+                    val maxDim = 300
+                    val width = originalBitmap.width
+                    val height = originalBitmap.height
+                    val ratio = width.toFloat() / height.toFloat()
+                    val finalWidth = if (width > height) maxDim else (maxDim * ratio).toInt()
+                    val finalHeight = if (height > width) maxDim else (maxDim / ratio).toInt()
+                    
+                    val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(originalBitmap, finalWidth, finalHeight, true)
+                    
+                    views.setImageViewBitmap(R.id.img_contact_photo, scaledBitmap)
                     photoSet = true
                     inputStream.close()
                 }
@@ -136,11 +136,18 @@ class AlbumWidgetProvider : AppWidgetProvider() {
             getPendingIntent(context, ACTION_NEXT_PAGE, 102)
         )
 
-        // Set click listener for Call WhatsApp button
-        views.setOnClickPendingIntent(
-            R.id.btn_call_wa,
-            getPendingIntent(context, ACTION_CALL_WHATSAPP, 103)
+        // Set click listener for Call WhatsApp buttons using a direct Activity Intent
+        val waIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/${contact.phoneNumber}")).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        val waPendingIntent = PendingIntent.getActivity(
+            context,
+            contact.id.hashCode(),
+            waIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        views.setOnClickPendingIntent(R.id.btn_video_call, waPendingIntent)
+        views.setOnClickPendingIntent(R.id.btn_chat_wa, waPendingIntent)
 
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
