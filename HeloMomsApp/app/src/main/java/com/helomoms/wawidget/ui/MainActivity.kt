@@ -288,19 +288,6 @@ fun ContactCard(
                     fontSize = 13.sp,
                     color = Color.Gray
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = Color(0xFFE8F5E9)
-                ) {
-                    Text(
-                        text = contact.actionType.labelString,
-                        color = Color(0xFF2E7D32),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                }
             }
 
             // Action Buttons
@@ -353,6 +340,31 @@ fun AddContactDialog(
                 // Ignore if permission not persistable
             }
             photoUri = uri.toString()
+        }
+    }
+
+    val contactPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                val cursor = context.contentResolver.query(
+                    uri,
+                    arrayOf(
+                        android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                        android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER
+                    ),
+                    null, null, null
+                )
+                cursor?.use {
+                    if (it.moveToFirst()) {
+                        val nameIndex = it.getColumnIndex(android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                        val numberIndex = it.getColumnIndex(android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER)
+                        if (nameIndex != -1) name = it.getString(nameIndex) ?: name
+                        if (numberIndex != -1) phone = it.getString(numberIndex) ?: phone
+                    }
+                }
+            }
         }
     }
 
@@ -423,26 +435,16 @@ fun AddContactDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 12.dp),
-                    singleLine = true
-                )
-
-                Text("Aksi Saat Tombol Panggil Ditekan:", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-
-                ActionType.values().forEach { actionType ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selectedAction = actionType }
-                            .padding(vertical = 4.dp)
-                    ) {
-                        RadioButton(
-                            selected = (selectedAction == actionType),
-                            onClick = { selectedAction = actionType }
-                        )
-                        Text(text = actionType.labelString, fontSize = 14.sp)
+                    singleLine = true,
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            val intent = Intent(Intent.ACTION_PICK, android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                            contactPickerLauncher.launch(intent)
+                        }) {
+                            Icon(Icons.Default.Phone, contentDescription = "Pilih dari Kontak HP", tint = Color(0xFF128C7E))
+                        }
                     }
-                }
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
