@@ -89,21 +89,48 @@
 
     <!-- Separate Green WhatsApp Action Button (Bottom) -->
     <LinearLayout
-        android:id="@+id/btn_call_wa"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:background="@drawable/bg_call_btn"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:weightSum="2">
 
-        <TextView
-            android:id="@+id/tv_action_label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="PANGGIL WA SEKARANG"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+        <!-- Button Video Call -->
+        <LinearLayout
+            android:id="@+id/btn_video_call"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_call_btn"
+            android:gravity="center"
+            android:layout_marginRight="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="VIDEO CALL"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Button Chat WA -->
+        <LinearLayout
+            android:id="@+id/btn_chat_wa"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_call_btn"
+            android:gravity="center"
+            android:layout_marginLeft="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CHAT WA"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
     </LinearLayout>
 
